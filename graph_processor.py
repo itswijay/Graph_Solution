@@ -76,3 +76,45 @@ def parse_graph_from_csv(filepath: str) -> Graph:
         raise FileNotFoundError(f"Graph file not found: {filepath}")
     
     return graph
+
+
+def is_dag(graph: Graph) -> bool:
+    """
+    Determine if the graph is a Directed Acyclic Graph (DAG).
+    Uses DFS with three states: unvisited (0), visiting (1), visited (2).
+    Returns True if no cycles are found, False otherwise.
+    """
+    # States: 0 = unvisited, 1 = visiting (in current DFS path), 2 = visited (done)
+    state = {node: 0 for node in graph.get_nodes()}
+    
+    def has_cycle_dfs(node: int) -> bool:
+        """DFS helper to detect cycles."""
+        if state[node] == 1:
+            # Found a back edge (cycle)
+            return True
+        if state[node] == 2:
+            # Already fully processed
+            return False
+        
+        # Mark as visiting
+        state[node] = 1
+        
+        # Check all neighbors
+        for neighbor in graph.get_adjacency_list(node):
+            if neighbor not in state:
+                # Isolated node encountered during edge traversal
+                state[neighbor] = 0
+            if has_cycle_dfs(neighbor):
+                return True
+        
+        # Mark as visited
+        state[node] = 2
+        return False
+    
+    # Run DFS from all unvisited nodes
+    for node in graph.get_nodes():
+        if state[node] == 0:
+            if has_cycle_dfs(node):
+                return False
+    
+    return True
