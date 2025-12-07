@@ -14,11 +14,13 @@ class Graph:
     def __init__(self):
         """Initialize an empty graph."""
         self.adjacency = defaultdict(list)  # adjacency[u] = [v1, v2, ...]
+        self.in_degrees = defaultdict(int)  # Cache in-degrees
         self.nodes = set()  # All nodes in the graph
     
     def add_edge(self, source: int, target: int) -> None:
         """Add a directed edge from source to target."""
         self.adjacency[source].append(target)
+        self.in_degrees[target] += 1
         self.nodes.add(source)
         self.nodes.add(target)
     
@@ -28,10 +30,7 @@ class Graph:
     
     def get_in_degree(self, node: int) -> int:
         """Calculate in-degree for a node (number of incoming edges)."""
-        count = 0
-        for neighbors in self.adjacency.values():
-            count += neighbors.count(node)
-        return count
+        return self.in_degrees.get(node, 0)
     
     def get_out_degree(self, node: int) -> int:
         """Calculate out-degree for a node (number of outgoing edges)."""
@@ -139,14 +138,22 @@ def compute_pagerank(graph: Graph, damping_factor: float = 0.85, iterations: int
     n = len(nodes)
     node_to_idx = {node: idx for idx, node in enumerate(nodes)}
     
+    # Build reverse adjacency list (incoming edges) and cache out-degrees
+    incoming_edges = defaultdict(list)
+    out_degrees = {}
+    sink_nodes = set()
+    
+    for source in nodes:
+        out_degree = graph.get_out_degree(source)
+        out_degrees[source] = out_degree
+        if out_degree == 0:
+            sink_nodes.add(source)
+        else:
+            for target in graph.get_adjacency_list(source):
+                incoming_edges[target].append(source)
+    
     # Initialize PageRank uniformly
     pagerank = [1.0 / n for _ in range(n)]
-    
-    # Identify sink nodes (nodes with no outgoing edges)
-    sink_nodes = set()
-    for node in nodes:
-        if graph.get_out_degree(node) == 0:
-            sink_nodes.add(node)
     
     # PageRank iteration
     for _ in range(iterations):
@@ -167,13 +174,11 @@ def compute_pagerank(graph: Graph, damping_factor: float = 0.85, iterations: int
             # Contribution from sink nodes
             rank = sink_contribution
             
-            # Contribution from non-sink nodes that link to this node
-            for source_node in nodes:
+            # Contribution from incoming edges
+            for source_node in incoming_edges[node]:
                 source_idx = node_to_idx[source_node]
-                out_degree = graph.get_out_degree(source_node)
-                
-                if out_degree > 0 and node in graph.get_adjacency_list(source_node):
-                    rank += pagerank[source_idx] / out_degree
+                source_out_degree = out_degrees[source_node]
+                rank += pagerank[source_idx] / source_out_degree
             
             # Apply damping factor and teleportation
             new_pagerank[node_idx] = (1.0 - damping_factor) / n + damping_factor * rank
