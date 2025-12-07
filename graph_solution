@@ -1,3 +1,52 @@
 #!/usr/bin/env python3
-# Main executable - will contain CLI interface
-pass
+"""
+Graph solution executable.
+Processes a directed graph and outputs structural and algorithmic properties.
+
+Usage: ./graph_solution path/to/graph.csv
+"""
+
+import sys
+import os
+
+# Add current directory to path to import graph_processor
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from graph_processor import parse_graph_from_csv, is_dag, compute_pagerank
+
+
+def main():
+    """Main entry point for the graph processing solution."""
+    if len(sys.argv) != 2:
+        print("Usage: ./graph_solution <path_to_graph_file>", file=sys.stderr)
+        sys.exit(1)
+    
+    filepath = sys.argv[1]
+    
+    try:
+        # Parse the graph
+        graph = parse_graph_from_csv(filepath)
+        
+        # Calculate metrics
+        dag = is_dag(graph)
+        max_in_deg = graph.get_max_in_degree()
+        max_out_deg = graph.get_max_out_degree()
+        pr_max, pr_min = compute_pagerank(graph)
+        
+        # Format output
+        print(f"is_dag: {str(dag).lower()}")
+        print(f"max_in_degree: {max_in_deg}")
+        print(f"max_out_degree: {max_out_deg}")
+        print(f"pr_max: {pr_max:.6f}")
+        print(f"pr_min: {pr_min:.6f}")
+        
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error processing graph: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
