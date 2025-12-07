@@ -118,3 +118,69 @@ def is_dag(graph: Graph) -> bool:
                 return False
     
     return True
+
+
+def compute_pagerank(graph: Graph, damping_factor: float = 0.85, iterations: int = 20) -> Tuple[float, float]:
+    """
+    Compute PageRank for all nodes in the graph.
+    
+    Args:
+        graph: The input graph
+        damping_factor: Damping factor (default 0.85)
+        iterations: Number of iterations (default 20)
+    
+    Returns:
+        Tuple of (max_pagerank, min_pagerank)
+    """
+    nodes = list(graph.get_nodes())
+    if not nodes:
+        return 0.0, 0.0
+    
+    n = len(nodes)
+    node_to_idx = {node: idx for idx, node in enumerate(nodes)}
+    
+    # Initialize PageRank uniformly
+    pagerank = [1.0 / n for _ in range(n)]
+    
+    # Identify sink nodes (nodes with no outgoing edges)
+    sink_nodes = set()
+    for node in nodes:
+        if graph.get_out_degree(node) == 0:
+            sink_nodes.add(node)
+    
+    # PageRank iteration
+    for _ in range(iterations):
+        new_pagerank = [0.0] * n
+        
+        # Calculate contribution from sinks
+        sink_contribution = 0.0
+        if sink_nodes:
+            for sink_node in sink_nodes:
+                sink_idx = node_to_idx[sink_node]
+                sink_contribution += pagerank[sink_idx]
+            sink_contribution /= n
+        
+        # For each node, calculate new PageRank
+        for node in nodes:
+            node_idx = node_to_idx[node]
+            
+            # Contribution from sink nodes
+            rank = sink_contribution
+            
+            # Contribution from non-sink nodes that link to this node
+            for source_node in nodes:
+                source_idx = node_to_idx[source_node]
+                out_degree = graph.get_out_degree(source_node)
+                
+                if out_degree > 0 and node in graph.get_adjacency_list(source_node):
+                    rank += pagerank[source_idx] / out_degree
+            
+            # Apply damping factor and teleportation
+            new_pagerank[node_idx] = (1.0 - damping_factor) / n + damping_factor * rank
+        
+        pagerank = new_pagerank
+    
+    max_pr = max(pagerank)
+    min_pr = min(pagerank)
+    
+    return max_pr, min_pr
